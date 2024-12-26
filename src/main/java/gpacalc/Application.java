@@ -84,7 +84,7 @@ public class Application {
             System.exit(0);
         }
     }
-    
+
     public void gradeCheck(Application app, Subject subject, boolean majorSubject) {
         try {
             if (subject.getGrade().equals("P") || subject.getGrade().equals("NP")) {
