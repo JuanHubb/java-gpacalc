@@ -1,7 +1,6 @@
 package gpacalc;
 
 import java.util.ArrayList;
-
 import camp.nextstep.edu.missionutils.Console;
 
 public class Application {
@@ -9,14 +8,17 @@ public class Application {
     ArrayList<Subject> liberalArtsList = new ArrayList<>();
     double totalMajorAverageRating = 0;
     double totalLiberalArtsAverageRating = 0;
-    int total_major_Credit = 0;
-    int total_liberalArts_Credit = 0;
+    int totalMajorCredit = 0;
+    int totalLiberalArtsCredit = 0;
     int passCredit = 0;
     int failCredit = 0;
 
     public static void main(String[] args) {
         Application app = new Application();
+        app. run(app);
+    }
 
+    public void run(Application app) {
         System.out.println("전공 과목명과 이수학점, 평점을 입력해주세요(예시: 프로그래밍언어론-3-A+,소프트웨어공학-3-B+):");
         app.input(app, app.majorList, true);
 
@@ -24,35 +26,37 @@ public class Application {
         app.input(app, app.liberalArtsList, false);
 
         System.out.println("\n<과목 목록>");
-        for(Subject s : app.majorList){
-            System.out.println("[전공] " + s.getTitle() + "," + s.getCredit() + "," + s.getGrade());
-        }
-        for(Subject s : app.liberalArtsList){
-            System.out.println("[교양] " + s.getTitle() + "," + s.getCredit() + "," + s.getGrade());
-        }
+        app.printSubjects("[전공] ", app.majorList);
+        app.printSubjects("[교양] ", app.liberalArtsList);
 
-        app.printAll(app);
+        app.printCalcResult(app);
     }
 
+    public void input(Application app, ArrayList<Subject> subjectList, boolean majorSubjectStatus) {
+        String[] beforeSplitInput = Console.readLine().split(",");
 
-    public void input(Application app, ArrayList<Subject> subjectList, boolean majorSubject) {
-        String[] temp;
-        String[] component;
-        temp = Console.readLine().split(",");
-        for (String eachSubject : temp) {
-            component = eachSubject.trim().split("-");
-            Subject subject = new Subject();
+        app.creatingObject(app, beforeSplitInput, subjectList, majorSubjectStatus);
+    }
 
-            // component[0]: title, component[1]: credit, component[2]: grade
-            app.titleCheck(component[0], subject);
-            app.creditCheck(component[1],subject);
-            app.gradeCheck(app, component,subject, majorSubject);
+    // input 나누는 것이 메소드를 최소 단위로 잘 나눈 것인지 의문
+    public void creatingObject(Application app, String[] beforeSplitInput, ArrayList<Subject> subjectList, boolean majorSubjectStatus) {
+        String[] subjectComponent;
+
+        for (String eachSubject : beforeSplitInput) {
+            subjectComponent = eachSubject.trim().split("-");
+            Subject subject = new Subject(subjectComponent[0],Integer.parseInt(subjectComponent[1]),subjectComponent[2]);
+            subjectComponentChecker(app, subject, majorSubjectStatus);
 
             subjectList.add(subject);
         }
     }
 
-    // 과목명(component[0]) 검사
+    public void subjectComponentChecker(Application app, Subject subject, boolean majorSubjectStatus){
+        app.titleCheck(subject.getTitle(), subject);
+        app.creditCheck(subject.getCredit(),subject);
+        app.gradeCheck(app,subject, majorSubjectStatus);
+    }
+
     public void titleCheck(String component, Subject subject) {
         try{
             if (component.length() > 10) {
@@ -68,10 +72,8 @@ public class Application {
         }
     }
 
-    // 과목학점(component[1]) 검사
-    public void creditCheck(String component, Subject subject) {
+    public void creditCheck(int digit, Subject subject) {
         try{
-            int digit = Integer.parseInt(component);
             if (digit == 1 || digit == 2 || digit == 3 || digit == 4){
                 subject.setCredit(digit);
             }else{
@@ -82,32 +84,31 @@ public class Application {
             System.exit(0);
         }
     }
-
-    // 과목성적(component[2]) 검사
-    public void gradeCheck(Application app, String[] component, Subject subject, boolean majorSubject) {
+    
+    public void gradeCheck(Application app, Subject subject, boolean majorSubject) {
         try {
-            if (component[2].equals("P") || component[2].equals("NP")) {
-                String grade = app.calc_PF_GradeStringToDouble(component[2]);
+            if (subject.getGrade().equals("P") || subject.getGrade().equals("NP")) {
+                String grade = app.calcPAndFGradeStringToDouble(subject.getGrade());
                 if (grade.equals("wrong value")) {
                     throw new IllegalArgumentException("과목성적을 잘못 입력하셨습니다.");
                 }
                 if (grade.equals("Pass")){
-                    app.passCredit += Integer.parseInt(component[1]);
+                    app.passCredit += subject.getCredit();
                 }
             } else {
-                double grade = app.calcGradeStringToDouble(component[2]);
+                double grade = app.calcGradeStringToDouble(subject.getGrade());
                 if (grade == -1) {
-                    System.out.println(component[2] + "grade == " + grade);
+                    System.out.println(subject.getGrade() + "grade == " + grade);
                     throw new IllegalArgumentException("과목성적을 잘못 입력하셨습니다.");
                 }
                 if (grade == 0){
-                    app.failCredit += Integer.parseInt(component[1]);
+                    app.failCredit += subject.getCredit();
                 }
                 else if (majorSubject){
-                    app.total_major_Credit += Integer.parseInt(component[1]);
+                    app.totalMajorCredit += subject.getCredit();
                     app.totalMajorAverageRating += subject.getCredit() * grade;
                 }else{
-                    app.total_liberalArts_Credit += Integer.parseInt(component[1]);
+                    app.totalLiberalArtsCredit += subject.getCredit();
                     app.totalLiberalArtsAverageRating += subject.getCredit() * grade;
                 }
             }
@@ -115,7 +116,6 @@ public class Application {
             System.out.println(e.getMessage());
             System.exit(0);
         }
-        subject.setGrade(component[2]);
     }
 
     public double calcGradeStringToDouble(String grade) {
@@ -143,7 +143,7 @@ public class Application {
         }
     }
 
-    public String calc_PF_GradeStringToDouble(String grade) {
+    public String calcPAndFGradeStringToDouble(String grade) {
         switch (grade) {
             case "P":
                 return "Pass";
@@ -154,14 +154,20 @@ public class Application {
         }
     }
 
-    public void printAll(Application app) {
+    public void printSubjects(String subjectType, ArrayList<Subject> subjectList) {
+        for(Subject eachSubject : subjectList){
+            System.out.println(subjectType + " " + eachSubject.getTitle() + "," + eachSubject.getCredit() + "," + eachSubject.getGrade());
+        }
+    }
+
+    public void printCalcResult(Application app) {
         System.out.println("\n<취득학점>");
-        System.out.println(app.total_major_Credit + app.total_liberalArts_Credit + app.passCredit + "학점");
+        System.out.println(app.totalMajorCredit + app.totalLiberalArtsCredit + app.passCredit + "학점");
 
         System.out.println("\n<평점평균>");
-        System.out.println(Math.round((app.totalMajorAverageRating + app.totalLiberalArtsAverageRating) / (app.total_major_Credit + app.total_liberalArts_Credit + app.failCredit)*100)/100.0 + " / 4.5");
+        System.out.println(Math.round((app.totalMajorAverageRating + app.totalLiberalArtsAverageRating) / (app.totalMajorCredit + app.totalLiberalArtsCredit + app.failCredit)*100)/100.0 + " / 4.5");
 
         System.out.println("\n<전공 평점평균>");
-        System.out.println(Math.round((app.totalMajorAverageRating / app.total_major_Credit)*100)/100.0  + " / 4.5");
+        System.out.println(Math.round((app.totalMajorAverageRating / app.totalMajorCredit)*100)/100.0  + " / 4.5");
     }
 }
